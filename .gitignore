@@ -1,0 +1,23 @@
+﻿# Backup cartelle
+data_backup_20260614/
+data_backup_completo_20260614/
+
+# File mbtiles (usiamo solo pmtiles)
+data/tileserver/*.mbtiles
+
+# File non necessari
+data/tileserver/tileserver.php
+data/tileserver/.htaccess
+data/tileserver/.travis.yml
+data/tileserver/README.md
+data/tileserver/pmtiles.exe
+
+# Backup conf.json
+data/conf.json.bak*
+data/check_fields.py
+data/fix_desc.py
+data/fix_popup.py
+
+# Script utility
+fix_index.py
+fix_index2.py

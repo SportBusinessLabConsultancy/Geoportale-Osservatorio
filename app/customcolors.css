@@ -1,0 +1,10 @@
+:root {
+    --fontcolor: rgb(30,30,30);
+    --background: rgb(255,255,255);
+    --header: #f5f5f5;
+}
+/* Sfondo mare per la mappa */
+#atlas-map { background: #cce5f0 !important; }
+
+.maplibregl-canvas { background-color: #cce5f0 !important; }
+.maplibregl-map { background: #cce5f0 !important; }

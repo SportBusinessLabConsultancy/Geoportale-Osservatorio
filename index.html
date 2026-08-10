@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta charset="utf-8">
+
+    <meta name="description" content="">
+    <link rel="icon" type="image/png" href="app/logos/qwv.png">
+
+    <meta name="keywords" content="">
+    <meta name="author" content="300.000Km/s">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name='RESOURCE-TYPE' content='DOCUMENT' />
+    <meta name='DISTRIBUTION' content='GLOBAL' />
+    <meta id='MetaRobots' name='ROBOTS' content='INDEX, FOLLOW' />
+    <meta name='REVISIT-AFTER' content='1 DAYS' />
+    <meta name='RATING' content='GENERAL' />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,200;0,400;0,600;0,900;1,200;1,400;1,600;1,900&display=swap"
+        rel="stylesheet">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Open+Sans:ital@1&family=Poppins:wght@100;200;400;600;800&display=swap"
+        rel="stylesheet">
+
+
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
+
+    <!-- <link href="vendor/materialdesignicons.min.css" rel="stylesheet"> -->
+    <link href="vendor/vuetify.min.css" rel="stylesheet">
+
+    <script src="vendor/vue.js"></script>
+    <script src="vendor/vuetify.js"></script>
+
+    
+    <script src="app/i18n/words.js"></script>
+    <script src="vendor/vue-i18n.js"></script>
+
+    <link  href="vendor/maplibre-gl.css" rel="stylesheet" />
+    <script src="vendor/maplibre-gl.js"></script>
+    <script src="vendor/pmtiles.js"></script>
+    <script>
+        const p = new pmtiles.Protocol();
+        maplibregl.addProtocol("pmtiles", p.tile.bind(p));
+    </script>
+    <script src="vendor/maplibre-cog-protocol.js"></script>
+
+    <script src="app/customviewer.js"></script>
+
+    <script src="vendor/maplibre-gl-measures.js"></script>
+
+    <script src="vendor/svg.min.js"></script>
+
+    <link  href="app/maplibre.css"     rel="stylesheet">
+
+    <link  href="app/styles.css"       rel="stylesheet">
+
+    <link  href="app/customcolors.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+    <div id="app">
+        <v-app>
+
+            <v-dialog v-if="ready" v-model="dialog" width="600px">
+                <div v-html="c_data.conf.project.fulldescription.split('\n').join('<br>')"></div>
+            </v-dialog>
+            
+            <div v-if="ready" class="header">
+                <span class="title">{{c_data.conf.project.name}}</span>
+                <div class="minilogos">
+                    <a v-for="i in c_data.conf.project.logos" class="logo-link" :href="i.href" :title="i.name"
+                        target="_blank">
+                        <img class="minilogo" :src="'data/logos/'+i.src">
+                    </a>
+                    <a class="logo-link" href="http://quickwebviewer.org/" title="Quick Web Viewer">
+                        <img class="minilogo" src="app/logos/qwv.png">
+                    </a>
+                    <div class="seph"></div>
+                    <div class="languajes">
+                        <v-select
+                        :items="['en', 'fr', 'es', 'ca']"
+                        :label="$i18n.locale"
+                        prepend-icon="mdi-earth"
+                        dense
+                        @change="setLanguage"
+                        ></v-select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="myapp">
+                <div id="drawer">
+                    <div class="drawer-nav">
+                        <ul v-if="ready">
+                            <li class="list-item" v-on:click="loadChapter(-1)"
+                                :class="[currentChapter == -1 ? 'active' : 'none']">
+                                <div class="icon">
+                                    <div class="icon-button project"></div>
+                                </div>
+                                <div class="item" :title="c_data.conf.project.name">
+                                    <v-list-item-title class="text-h6">{{c_data.conf.project.name}}</v-list-item-title>
+                                    <v-list-item-subtitle>{{c_data.conf.project.long_name}}</v-list-item-subtitle>
+                                </div>
+                            </li>
+
+                            <div class="gap"></div>
+                            <li class="list-item" v-for="cn, c in c_data.conf.chapters" v-on:click="loadChapter(c)"
+                                :class="[currentChapter == c ? 'active' : 'none']">
+                                <div class="icon">
+                                    <div class="icon-button"></div>
+                                </div>
+                                <div class="item" :title="c_data.conf.chapters[c]['name']">
+                                    <v-list-item-title>{{c_data.conf.chapters[c]['name']}}</v-list-item-title>
+                                    <v-list-item-subtitle>{{c_data.conf.chapters[c]['desc']}}</v-list-item-subtitle>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+
+                <div id="mycontent">
+
+                    <div v-if="type=='intro' && c_data.conf" class="intro">
+
+                        <v-row v-if="main_page_columns==3">
+                            <v-col cols="12" sm="12" md="6" lg="5">
+                                <h1>{{c_data.conf.project.name}}</h1>
+                                <h2>{{c_data.conf.project.long_name}}</h2>
+    
+                                <p v-if="c_data.conf.project.description" v-html="c_data.conf.project.description.split('\n').join('<br>')"></p>
+                                <v-btn v-if="c_data.conf.project.fulldescription.length>0" 
+                                    @click="dialog=true" gray
+                                    outlined
+                                    title="more information">+info</v-btn>
+                            </v-col>
+
+                            <v-col cols="12" sm="12" md="6" lg="4">
+                                <div class="list-item main">
+                                    <div class="item-title">{{ $t("consult") }}</div>
+                                    
+                                    <div class="item" v-for="cn, c in c_data.conf.chapters" v-on:click="loadChapter(c)">
+                                        <v-list-item-title><span
+                                                class="bullet-big"></span>{{c_data.conf.chapters[c]['name']}}
+                                        </v-list-item-title>
+                                        <v-list-item>{{c_data.conf.chapters[c]['desc']}}</v-list-item>
+                                    </div>
+                                </div>
+    
+                                <div v-if="c_data.conf.project.attached_docs.length>0" class="attachments">
+                                    <div class="item-title">{{ $t("download") }}</div>
+                                    <p v-for="k, i in c_data.conf.project.attached_docs">
+                                        <a target="_blank" class="logo-small" :href="'data/attachments/'+k.src">
+                                            <v-icon color="black">mdi-file-outline</v-icon> <span
+                                                :title="k.name">{{k.name}}</span>
+                                        </a>
+                                    </p>
+                                </div>
+                            </v-col>
+
+                            <v-col cols="12" sm="12" md="12" lg="3">
+                                <div v-if="c_data.conf.project.logos.length>0" class="logos">
+                                    <a v-for="k, i in c_data.conf.project.logos" target="_blank" class="logo-small" :href="k.href">
+                                        <img :src="'data/logos/'+k.src" :title="k.name" class="logo">
+                                    </a>
+                                </div>
+    
+                                <div class="disclaimer" v-if="c_data.conf.project.attribution && c_data.conf.project.attribution.length>0">
+                                    <p v-html="c_data.conf.project.attribution.split('\n').join('<br>')">
+                                    </p>
+                                </div>
+                            </v-col>
+                        </v-row>
+
+
+                        <v-row v-if="main_page_columns==1">
+                            <v-col cols="12" sm="12" md="6" lg="5">
+
+                                <h1>{{c_data.conf.project.name}}</h1>
+                                <h2>{{c_data.conf.project.long_name}}</h2>
+    
+                                <p v-if="c_data.conf.project.description" v-html="c_data.conf.project.description.split('\n').join('<br>')"></p>
+                                <v-btn v-if="c_data.conf.project.fulldescription.length>0" 
+                                    @click="dialog=true" gray
+                                    outlined
+                                    title="more information">+info</v-btn>
+                                
+                                </br>
+                                </br>
+              
+                                <div class="list-item main">
+                                    <div class="item-title">{{ $t("consult") }}</div>
+                                    <div class="item" v-for="cn, c in c_data.conf.chapters" v-on:click="loadChapter(c)">
+                                        <v-list-item-title><span
+                                                class="bullet-big"></span>{{c_data.conf.chapters[c]['name']}}
+                                        </v-list-item-title>
+                                        <v-list-item>{{c_data.conf.chapters[c]['desc']}}</v-list-item>
+                                    </div>
+                                </div>
+    
+                                <div v-if="c_data.conf.project.attached_docs" class="attachments">
+                                    <div class="item-title">{{ $t("download") }}</div>
+                                    <p v-for="k, i in c_data.conf.project.attached_docs">
+                                        <a target="_blank" class="logo-small" :href="'data/attachments/'+k.src">
+                                            <v-icon color="black">mdi-file-outline</v-icon> <span
+                                                :title="k.name">{{k.name}}</span>
+                                        </a>
+                                    </p>
+                                </div>
+            
+                                <div v-if="c_data.conf.project.logos.length>0" class="logos">
+                                    <a v-for="k, i in c_data.conf.project.logos" target="_blank" class="logo-small" :href="k.href">
+                                        <img :src="'data/logos/'+k.src" :title="k.name" class="logo">
+                                    </a>
+                                </div>
+    
+                                <div class="disclaimer" v-if="c_data.conf.project.attribution && c_data.conf.project.attribution.length>0">
+                                    <p v-html="c_data.conf.project.attribution.split('\n').join('<br>')">
+                                    </p>
+                                </div>
+                            </v-col>
+
+                        </v-row>
+                    
+                        <!-- <div class="sep">
+                        </div>  -->
+                        
+                    </div>
+
+                    <div v-if="type=='md'" class="md"></div>
+
+                    <div v-if="type=='atlas'" class="atlas" id="atlas">
+
+                        <div class="atlas-menu" v-bind:class="{'unactive' :!atlas_menu}">
+
+                            <div class="closer">
+                                <v-icon v-if="atlas_menu" v-on:click="atlas_menu=false" color="black" title="close">
+                                    mdi-close</v-icon>
+                                <v-icon v-if="!atlas_menu" v-on:click="atlas_menu=true" color="black" title="open">
+                                    mdi-chevron-right</v-icon>
+                            </div>
+
+                            <!-- <div class="details">
+                                <v-icon v-if="atlas_menu" v-on:click="atlas_menu=false" color="gray">mdi-close-circle-outline</v-icon>
+                                <v-icon v-if="!atlas_menu" v-on:click="atlas_menu=true" color="gray">mdi-chevron-right-circle-outline</v-icon>
+                            </div>
+
+                            <div class="leayers">
+                                <v-icon v-if="atlas_menu" v-on:click="atlas_menu=false" color="gray">mdi-close-circle-outline</v-icon>
+                                <v-icon v-if="!atlas_menu" v-on:click="atlas_menu=true" color="gray">mdi-chevron-right-circle-outline</v-icon>
+                            </div> -->
+
+                            <!-- <div v-if="atlas_menu" class="container-menu"> -->
+
+                            <div class="container-menu">
+
+                                <div class="head-menu">
+                                    <h2>{{c_data.conf.chapters[currentChapter].name}}<span v-if="debug"> -- {{currentZoom}}</span></h2>
+                                    <h3>{{c_data.conf.chapters[currentChapter].desc}}</h3>
+                                </div>
+
+                                <div class="subhead-menu">
+                                    <div class="content-menu" id="content-menu" v-if="currentChapter>=0">
+                                        <h4>{{maps[currentMap].name}}</h4>
+                                       
+                                        <div class="menu-selector">
+                                            <v-icon v-on:click="changeStatus('description')" color="gray"
+                                                :class="[status_menu == 'description' ? 'active' : 'none']"
+                                                title="legend">
+                                                mdi-format-list-bulleted</v-icon>
+
+                                            <v-icon v-if="Object.keys(maps).length>1"
+                                                v-on:click="changeStatus('layers')" color="gray"
+                                                :class="[status_menu == 'layers' ? 'active' : 'none']"
+                                                title="maps">
+                                                mdi-layers</v-icon>
+
+                                            <v-icon v-on:click="changeStatus('close')" color="gray" class="close-button"
+                                                :class="[['layers', 'description'].indexOf(status_menu) != -1 ? 'active' : 'none']"
+                                                v-if="['layers', 'description'].indexOf(status_menu) != -1"
+                                                title="close">
+                                                mdi-close</v-icon>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                <div class="attached_docs_map" v-if="c_data.conf.chapters[currentChapter].attached_docs.length>0">
+                                    <div v-for="k in c_data.conf.chapters[currentChapter].attached_docs">
+                                        <a target="_blank" class="logo-small" :href="k.src">
+                                            <v-icon color="black" title="download">mdi-file-outline</v-icon> 
+                                                <span :title="k.name">{{k.name}}</span>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="layers-menu" v-if="Object.keys(maps).length>1"
+                                    :class="[status_menu == 'layers' ? 'active' : 'unactive']">
+
+                                    <!-- <div v-if="currentChapter">
+                                        <h5>
+                                            {{maps[currentMap].desc||''}}
+                                        </h5>
+                                        <div v-if="c_data.conf.chapters[currentChapter].template_formatted"
+                                            v-html="c_data.conf.chapters[currentChapter].template_formatted">
+                                        </div>
+                                    </div> -->
+
+                                    <div class="floatting floatting-layers" v-if="Object.keys(maps).length>1">
+                                        <v-icon color="rgb(150,150,150)" title="maps">mdi-layers</v-icon>
+                                    </div>
+
+                                    <div class="scroll-menu" v-if="Object.keys(maps).length>1">
+                                        <table>
+                                            <!-- <tr v-for="(r,m, i) in maps" v-on:click="loadMapLibre(m,currentChapter)" -->
+                                            <tr v-for="(r,m, i) in maps" v-on:click="loadMapLibre(m)"
+                                                :class="[currentMap == m ? 'active' : 'none']">
+                                                <!-- <td class="gray">{{m}} - </td> -->
+                                                <td class="bullet"></td>
+                                                <td :title="maps[m].desc">{{maps[m].name}}</td>
+                                                <!-- <td class="desc">{{maps[m].desc}}</td> -->
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+
+
+                                <div class="detail-menu"
+                                    :class="[status_menu == 'description' ? 'active' : 'unactive']">
+                                    <div v-if="currentChapter">
+                                        <h5>
+                                            {{maps[currentMap].desc}}
+                                        </h5>
+                                        <div v-if="c_data.conf.chapters[currentChapter].template_formatted"
+                                            v-html="c_data.conf.chapters[currentChapter].template_formatted"></div>
+                                    </div>
+
+                                    <div class="floatting">
+                                        <v-icon color="gray" title="legend">mdi-format-list-bulleted</v-icon>
+                                    </div>
+
+                                    <div class="atlas-legend-menu">
+                                        <div v-for="i in atlas_legend" > 
+                                            <div v-html='i.html' v-if="currentZoom >= i.minZoom && currentZoom <= i.maxZoom" v-on:click="toggleLayer(i.legendId, i.layerIds)"></div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="atlas-map" class="atlas-map maplibregl-map mapboxgl-map"
+                            v-bind:class="{'full' :!atlas_menu}">
+                        </div>
+
+                        <div id="atlas-popup" class="ol-popup">
+                            <div id="popup-content"></div>
+                        </div>
+
+                    </div>
+                </div>
+
+
+
+            </div>
+
+        </v-app>
+    </div>
+
+
+    <script src="app/index.js"></script>
+
+
+</body>
+
+</html>
+
+
